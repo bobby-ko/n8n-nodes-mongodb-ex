@@ -1,0 +1,45 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/typescript-node
+{
+	"name": "Node.js & TypeScript",
+	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
+	"image": "mcr.microsoft.com/devcontainers/typescript-node:1-22",
+	"features": {
+		"ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
+	},
+
+    "mounts": [
+        "source=ps-${localWorkspaceFolderBasename}-node_modules,target=/workspaces/${localWorkspaceFolderBasename}/node_modules,type=volume",
+        "source=ps-${localWorkspaceFolderBasename}-dist,target=/workspaces/${localWorkspaceFolderBasename}/dist,type=volume"
+    ],
+
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	"forwardPorts": [
+	],
+
+	// Use 'postCreateCommand' to run commands after the container is created.
+	"postCreateCommand": "chmod +x ./.devcontainer/postCreateCommand.sh && ./.devcontainer/postCreateCommand.sh",
+
+	// Configure tool-specific properties.
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"streetsidesoftware.code-spell-checker",
+				"IronGeek.vscode-env",
+				"mechatroner.rainbow-csv",
+				"vitest.explorer",
+				"vs-publisher-1448185.keyoti-changeallendoflinesequence",
+				"mongodb.mongodb-vscode",
+				"Augment.vscode-augment"
+			]
+		}
+	},
+
+	"remoteEnv": {
+		"EDITOR": "nano",
+		"TZ": "${localEnv:TZ}"
+	},
+
+	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+	"remoteUser": "root"
+}

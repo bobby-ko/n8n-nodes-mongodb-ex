@@ -1,0 +1,64 @@
+{
+  "name": "n8n-nodes-mongodb-ex",
+  "version": "0.1.0",
+  "description": "Extended MongoDB node with support for filters, bulk operations, full update json support and more. Stop treating your MongoDb operations like a second class SQL derivatives and take full advantage of latest MongoDb driver and operations features.",
+  "keywords": [
+    "n8n-community-node-package",
+    "mongodb",
+    "json",
+    "extended",
+    "advance",
+    "bulk"
+  ],
+  "license": "MIT",
+  "homepage": "",
+  "author": {
+    "name": "Bobby Kotzev",
+    "email": "bobby.ko@gmail.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bobby-ko/n8n-nodes-mongodb-ex.git"
+  },
+  "engines": {
+    "node": ">=20.15"
+  },
+  "main": "index.js",
+  "scripts": {
+    "build": "node -e \"const fs=require('fs'),path=require('path'),p='dist'; if (fs.existsSync(p)) for (const e of fs.readdirSync(p)) fs.rmSync(path.join(p,e), {recursive:true, force:true});\" && tsc && gulp build:icons",
+    "dev": "tsc --watch",
+    "format": "prettier nodes credentials --write",
+    "lint": "eslint nodes credentials package.json",
+    "lintfix": "eslint nodes credentials package.json --fix",
+    "prepublishOnly": "npm run build && npm run lint -c .eslintrc.prepublish.js nodes credentials package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "credentials": [
+      "dist/credentials/MongoDbExApi.credentials.js"
+    ],
+    "nodes": [
+      "dist/nodes/MongoDbEx/MongoDbEx.node.js"
+    ]
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "@typescript-eslint/parser": "~8.32.0",
+    "eslint": "^8.57.0",
+    "eslint-plugin-n8n-nodes-base": "^1.16.3",
+    "gulp": "^5.0.0",
+    "prettier": "^3.5.3",
+    "typescript": "^5.8.2"
+  },
+  "peerDependencies": {
+    "n8n-workflow": "*"
+  },
+  "dependencies": {
+    "@types/lodash-es": "^4.17.12",
+    "lodash-es": "^4.17.21",
+    "mongodb": "^6.19.0"
+  }
+}
