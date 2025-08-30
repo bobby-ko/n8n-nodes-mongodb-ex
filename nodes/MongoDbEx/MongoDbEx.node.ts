@@ -5,7 +5,7 @@ import type {
 	Sort,
 	Document,
 } from 'mongodb';
-import { ObjectId } from 'mongodb';
+
 import { ApplicationError /*, NodeConnectionTypes */ } from 'n8n-workflow';
 import type {
 	IExecuteFunctions,
@@ -25,6 +25,7 @@ import {
 	connectMongoClient,
 	stringifyObjectIDs,
 	validateAndResolveMongoCredentials,
+	coerceDocumentTypes,
 } from './GenericFunctions';
 import type { IMongoParametricCredentials } from './mongoDb.types';
 import { nodeProperties } from './MongoDbProperties';
@@ -105,47 +106,7 @@ export class MongoDbEx implements INodeType {
 	};
 
 
-	// Traverse a document and coerce string values that look like ObjectId or ISO dates
-	private isISODateString(value: string): boolean {
-		// Accepts formats like YYYY-MM-DD, or full ISO 8601 with time and zone
-		const isoRegex = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,3}))?(?:Z|[+\-]\d{2}:\d{2})?)?$/;
-		return isoRegex.test(value);
-	}
-
-	private traverseAndCoerce(value: unknown): unknown {
-		if (Array.isArray(value)) {
-			return value.map((v) => this.traverseAndCoerce(v));
-		}
-		if (value !== null && typeof value === 'object') {
-			const obj = value as Record<string, unknown>;
-			// Do not traverse into special extended/operator shapes
-			if (Object.prototype.hasOwnProperty.call(obj, '$oid') || Object.prototype.hasOwnProperty.call(obj, '$toDate')) {
-				return obj;
-			}
-			for (const key of Object.keys(obj)) {
-				if (['$oid', '$toDate'].includes(key)) continue; // ignore these keys entirely
-				obj[key] = this.traverseAndCoerce(obj[key]);
-			}
-			return obj;
-		}
-		if (typeof value === 'string') {
-			const str = value.trim();
-			if (str.length === 24 && ObjectId.isValid(str)) {
-				try {
-					return ObjectId.createFromHexString(str);
-				} catch {}
-			}
-			if (this.isISODateString(str)) {
-				const d = new Date(str);
-				if (!Number.isNaN(d.getTime())) return d;
-			}
-		}
-		return value;
-	}
-
-	private coerceDocumentTypes(document: Document): Document {
-		return this.traverseAndCoerce(document) as Document;
-	}
+	// Type coercion helpers moved to GenericFunctions.ts (see GenericFunctions.coerceDocumentTypes etc.)
 
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
 		const credentials = await this.getCredentials('mongoDb');
@@ -174,7 +135,7 @@ export class MongoDbEx implements INodeType {
 					try {
 						const pipelineRaw = this.getNodeParameter('query', i) as string;
 						const pipelineParsed = JSON.parse(pipelineRaw) as unknown;
-						const coercedPipeline = (this as unknown as MongoDbEx).coerceDocumentTypes(
+						const coercedPipeline = coerceDocumentTypes(
 							pipelineParsed as unknown as Document,
 						) as unknown as Document[];
 						const query = mdb
@@ -202,7 +163,7 @@ export class MongoDbEx implements INodeType {
 					try {
 						const filterRaw = this.getNodeParameter('query', i) as string;
 						const filterParsed = JSON.parse(filterRaw) as unknown as Document;
-						const coercedFilter = (this as unknown as MongoDbEx).coerceDocumentTypes(filterParsed);
+						const coercedFilter = coerceDocumentTypes(filterParsed);
 						const { deletedCount } = await mdb
 							.collection(this.getNodeParameter('collection', i) as string)
 							.deleteMany(coercedFilter);
@@ -229,7 +190,7 @@ export class MongoDbEx implements INodeType {
 					try {
 						const queryRaw = this.getNodeParameter('query', i) as string;
 						const queryParsed = JSON.parse(queryRaw) as unknown as Document;
-						const coercedQuery = (this as unknown as MongoDbEx).coerceDocumentTypes(queryParsed);
+						const coercedQuery = coerceDocumentTypes(queryParsed);
 
 						let query = mdb
 							.collection(this.getNodeParameter('collection', i) as string)
@@ -290,10 +251,10 @@ export class MongoDbEx implements INodeType {
 					try {
 						const updateFilterRaw = this.getNodeParameter('updateFilter', i) as string;
 						const updateFilterParsed = JSON.parse(updateFilterRaw) as unknown as Document;
-						const filter = (this as unknown as MongoDbEx).coerceDocumentTypes(updateFilterParsed);
+						const filter = coerceDocumentTypes(updateFilterParsed);
 
 						const updateRaw = this.getNodeParameter('update', i) as string;
-						const replacement = (this as unknown as MongoDbEx).coerceDocumentTypes(
+						const replacement = coerceDocumentTypes(
 							JSON.parse(updateRaw) as unknown as Document,
 						) as unknown as IDataObject | unknown[];
 
@@ -332,16 +293,16 @@ export class MongoDbEx implements INodeType {
 					try {
 						const updateFilterRaw = this.getNodeParameter('updateFilter', i) as string;
 						const updateFilterParsed = JSON.parse(updateFilterRaw) as unknown as Document;
-						const filter = (this as unknown as MongoDbEx).coerceDocumentTypes(updateFilterParsed);
+						const filter = coerceDocumentTypes(updateFilterParsed);
 
 						const updateRaw = this.getNodeParameter('update', i) as string;
-						const updateDocOrPipeline = (this as unknown as MongoDbEx).coerceDocumentTypes(
+						const updateDocOrPipeline = coerceDocumentTypes(
 							JSON.parse(updateRaw) as unknown as Document,
 						) as unknown as IDataObject | unknown[];
 
 						const arrayFiltersRaw = this.getNodeParameter('options.arrayFilters', i, '') as string;
 						const arrayFilters = arrayFiltersRaw
-							? ((this as unknown as MongoDbEx).coerceDocumentTypes(JSON.parse(arrayFiltersRaw) as unknown as Document) as unknown as Document[])
+							? (coerceDocumentTypes(JSON.parse(arrayFiltersRaw) as unknown as Document) as unknown as Document[])
 							: undefined;
 
 						await mdb
@@ -390,7 +351,7 @@ export class MongoDbEx implements INodeType {
 
 					// Coerce types (ObjectId, ISO Date) within each document prior to insert
 					const coercedItems = insertItems.map((doc) =>
-						(this as unknown as MongoDbEx).coerceDocumentTypes(doc as unknown as Document) as unknown as IDataObject,
+						coerceDocumentTypes(doc as unknown as Document) as unknown as IDataObject,
 					);
 
 					if (many) {
@@ -422,8 +383,6 @@ export class MongoDbEx implements INodeType {
 			}
 
 			if (operation === 'update') {
-
-
 				fallbackPairedItems = fallbackPairedItems ?? generatePairedItemData(items.length);
 				const baseUpdateOptions = (this.getNodeParameter('upsert', 0) as boolean)
 					? { upsert: true }
@@ -435,12 +394,12 @@ export class MongoDbEx implements INodeType {
 					try {
 						const updateFilterRaw = this.getNodeParameter('updateFilter', i) as string;
 						const updateFilterParsed = JSON.parse(updateFilterRaw) as unknown as Document;
-						const filter = (this as unknown as MongoDbEx).coerceDocumentTypes(updateFilterParsed);
+						const filter = coerceDocumentTypes(updateFilterParsed);
 
 						const rawUpdateParam = this.getNodeParameter('update', i) as unknown;
 						let updateDocOrPipeline = (typeof rawUpdateParam === 'string'
-							? ((this as unknown as MongoDbEx).coerceDocumentTypes(JSON.parse(rawUpdateParam as string) as unknown as Document) as unknown as IDataObject | unknown[])
-							: ((this as unknown as MongoDbEx).coerceDocumentTypes(rawUpdateParam as unknown as Document) as unknown as IDataObject | unknown[]));
+							? (coerceDocumentTypes(JSON.parse(rawUpdateParam as string) as unknown as Document) as unknown as IDataObject | unknown[])
+							: (coerceDocumentTypes(rawUpdateParam as unknown as Document) as unknown as IDataObject | unknown[]));
 
 						// For updateOne: if user provides a plain object without operators, wrap into {$set: ...}
 						let updateArg: Document | Document[];
@@ -456,7 +415,7 @@ export class MongoDbEx implements INodeType {
 						const collection = mdb.collection(this.getNodeParameter('collection', i) as string);
 						const arrayFiltersRaw = this.getNodeParameter('arrayFilters', i, '') as string;
 						const arrayFilters = arrayFiltersRaw
-							? ((this as unknown as MongoDbEx).coerceDocumentTypes(JSON.parse(arrayFiltersRaw) as unknown as Document) as unknown as Document[])
+							? (coerceDocumentTypes(JSON.parse(arrayFiltersRaw) as unknown as Document) as unknown as Document[])
 							: undefined;
 
 						if (many) {

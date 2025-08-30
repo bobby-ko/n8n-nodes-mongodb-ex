@@ -1,13 +1,14 @@
 {
   "name": "n8n-nodes-mongodb-ex",
   "version": "0.1.0",
-  "description": "Extended MongoDB node with support for filters, bulk operations, full update json support and more. Stop treating your MongoDb operations like a second class SQL derivatives and take full advantage of latest MongoDb driver and operations features.",
+  "description": "Extended MongoDB node with authentic MongoDB query syntax, advanced update operators, update pipelines, arrayFilters, bulk operations, type coercion and more.",
   "keywords": [
     "n8n-community-node-package",
     "mongodb",
     "json",
     "extended",
     "advance",
+    "native",    
     "bulk"
   ],
   "license": "MIT",
@@ -35,6 +36,9 @@
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "n8n": {
     "n8nNodesApiVersion": 1,
     "credentials": [

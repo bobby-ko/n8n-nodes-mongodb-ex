@@ -276,7 +276,7 @@ export const nodeProperties: INodeProperties[] = [
 				resource: ['document'],
 			},
 		},
-		default: '{"_id": { $oid: "{{$json.id}}" }}',
+		default: '{"_id": { "$oid": "{{$json.id}}" }}',
 		required: true,
 		description:
 			'MongoDB filter object that determines which documents should be updated. You can construct complex filters using MongoDB query operators. Example: {"_id": "{{$json.id}}"} or {"status": "active", "age": {"$gte": 18}}',
@@ -326,16 +326,10 @@ export const nodeProperties: INodeProperties[] = [
 				displayName: 'Many',
 				name: 'many',
 				type: 'boolean',
-				displayOptions: {
-					show: {
-						operation: ['insert', 'update'],
-						resource: ['document'],
-					},
-				},
 				default: false,
 				description:
 					'When enabled, perform a multi-document operation: insertMany (for Insert) or updateMany (for Update). If disabled, uses insertOne/updateOne.',
-			},			
+			},
 			{
 				displayName: 'Array Filters',
 				name: 'arrayFilters',
@@ -344,13 +338,7 @@ export const nodeProperties: INodeProperties[] = [
 				placeholder: '[{ "elem.status": "pending" }]',
 				description:
 					'MongoDB arrayFilters to control which array elements get updated using positional operators like $[elem]. Example: [{ "elem.status": "pending" }].',
-				displayOptions: {
-					show: {
-						operation: ['update', 'findOneAndUpdate'],
-						resource: ['document'],
-					},
-				},
-			},		
+			},
 			{
 				displayName: 'Hint',
 				name: 'hint',

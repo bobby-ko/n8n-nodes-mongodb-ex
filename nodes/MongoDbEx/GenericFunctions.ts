@@ -1,7 +1,7 @@
 import get from 'lodash-es/get';
 import set from 'lodash-es/set';
 
-import { MongoClient, ObjectId } from 'mongodb';
+import { MongoClient, ObjectId, type Document } from 'mongodb';
 import { NodeOperationError } from 'n8n-workflow';
 import type {
 	ICredentialDataDecryptedObject,
@@ -18,6 +18,7 @@ import type {
 } from './mongoDb.types';
 // import { formatPrivateKey } from '../../utils/utilities';
 
+const isoRegex = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,3}))?(?:Z|[+\-]\d{2}:\d{2})?)?$/;
 
 function formatPrivateKey(privateKey: string, keyIsPublic = false): string {
 	let regex = /(PRIVATE KEY|CERTIFICATE)/;
@@ -206,4 +207,48 @@ export async function connectMongoClient(connectionString: string, credentials: 
 	}
 
 	return client;
+}
+
+
+// ------------------------------
+// Type coercion helpers
+// ------------------------------
+function isISODateString(value: string): boolean {
+	// Accepts formats like YYYY-MM-DD, or full ISO 8601 with time and zone
+	return isoRegex.test(value);
+}
+
+function traverseAndCoerce(value: unknown): unknown {
+	if (Array.isArray(value)) {
+		return value.map((v) => traverseAndCoerce(v));
+	}
+	if (value !== null && typeof value === 'object') {
+		const obj = value as Record<string, unknown>;
+		// Do not traverse into special extended/operator shapes
+		if (Object.prototype.hasOwnProperty.call(obj, '$oid') || Object.prototype.hasOwnProperty.call(obj, '$toDate')) {
+			return obj;
+		}
+		for (const key of Object.keys(obj)) {
+			if (['$oid', '$toDate'].includes(key)) continue; // ignore these keys entirely
+			obj[key] = traverseAndCoerce(obj[key]);
+		}
+		return obj;
+	}
+	if (typeof value === 'string') {
+		const str = value.trim();
+		if (str.length === 24 && ObjectId.isValid(str)) {
+			try {
+				return ObjectId.createFromHexString(str);
+			} catch {}
+		}
+		if (isISODateString(str)) {
+			const d = new Date(str);
+			if (!Number.isNaN(d.getTime())) return d;
+		}
+	}
+	return value;
+}
+
+export function coerceDocumentTypes(document: Document): Document {
+	return traverseAndCoerce(document) as Document;
 }

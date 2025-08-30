@@ -1,48 +1,185 @@
-![Banner image](https://user-images.githubusercontent.com/10284570/173569848-c624317f-42b1-45a6-ab09-f0ea3c247648.png)
+<!-- ![Banner image](https://user-images.githubusercontent.com/10284570/173569848-c624317f-42b1-45a6-ab09-f0ea3c247648.png) -->
 
-# n8n-nodes-starter
+<img src="assets/n8n_pink+white_logo.svg" alt="n8n" width="150" /> <span style="font-size: 5.5rem; margin: 0 1rem;"> <span style="font-size: 5.5rem; margin: 0 1rem;">🤝</span> <img src="nodes/MongoDbEx/mongodb.svg" alt="n8n" height="100" />
 
-This repo contains example nodes to help you get started building your own custom integrations for [n8n](https://n8n.io). It includes the node linter and other dependencies.
+# n8n node MongoDb Ex<small style="color: gray">(tended)</small>
 
-To make your custom node available to the community, you must create it as an npm package, and [submit it to the npm registry](https://docs.npmjs.com/packages-and-modules/contributing-packages-to-the-registry).
+`n8n-nodes-mongodb-ex`
 
-If you would like your node to be available on n8n cloud you can also [submit your node for verification](https://docs.n8n.io/integrations/creating-nodes/deploy/submit-community-nodes/).
+An extended [n8n](https://n8n.io/) MongoDB tailor-made for native MongoDB developers. This node goes beyond the built-in MongoDB node by providing authentic MongoDB query syntax, advanced update operators, update pipelines, arrayFilters, bulk operations, type coercion and more.
 
-## Prerequisites
+## Table of Contents
 
-You need the following installed on your development machine:
+- [Overview](#overview)
+- [Installation](#installation)
+- [Features](#features)
+- [Operations](#operations)
+- [Usage Examples](#usage-examples)
+- [Compatibility](#compatibility)
+- [License](#license)
 
-* [git](https://git-scm.com/downloads)
-* Node.js and npm. Minimum version Node 20. You can find instructions on how to install both using nvm (Node Version Manager) for Linux, Mac, and WSL [here](https://github.com/nvm-sh/nvm). For Windows users, refer to Microsoft's guide to [Install NodeJS on Windows](https://docs.microsoft.com/en-us/windows/dev-environment/javascript/nodejs-on-windows).
-* Install n8n with:
-  ```
-  npm install n8n -g
-  ```
-* Recommended: follow n8n's guide to [set up your development environment](https://docs.n8n.io/integrations/creating-nodes/build/node-development-environment/).
+## Overview
 
-## Using this starter
+MongoDB Extended (MongoDbEx) is a drop-in replacement for n8n’s base MongoDB node with a richer, MongoDB-native developer experience:
 
-These are the basic steps for working with the starter. For detailed guidance on creating and publishing nodes, refer to the [documentation](https://docs.n8n.io/integrations/creating-nodes/).
+- Use real MongoDB query syntax and aggregation pipelines
+- Leverage advanced update operators and update pipelines
+- Target array elements precisely with arrayFilters and positional operators
+- Perform single or bulk operations (insertMany/updateMany/bulkWrite)
+- Automatic type coercion for ObjectId and ISO dates
 
-1. [Generate a new repository](https://github.com/n8n-io/n8n-nodes-starter/generate) from this template repository.
-2. Clone your new repo:
-   ```
-   git clone https://github.com/<your organization>/<your-repo-name>.git
-   ```
-3. Run `npm i` to install dependencies.
-4. Open the project in your editor.
-5. Browse the examples in `/nodes` and `/credentials`. Modify the examples, or replace them with your own nodes.
-6. Update the `package.json` to match your details.
-7. Run `npm run lint` to check for errors or `npm run lintfix` to automatically fix errors when possible.
-8. Test your node locally. Refer to [Run your node locally](https://docs.n8n.io/integrations/creating-nodes/test/run-node-locally/) for guidance.
-9. Replace this README with documentation for your node. Use the [README_TEMPLATE](README_TEMPLATE.md) to get started.
-10. Update the LICENSE file to use your details.
-11. [Publish](https://docs.npmjs.com/packages-and-modules/contributing-packages-to-the-registry) your package to npm.
+## Installation
 
-## More information
+Follow the [community nodes installation guide](https://docs.n8n.io/integrations/community-nodes/installation/), then search for and install `n8n-nodes-mongodb-ex`.
 
-Refer to our [documentation on creating nodes](https://docs.n8n.io/integrations/creating-nodes/) for detailed information on building your own nodes.
+Alternatively, install directly:
+
+```bash
+npm install n8n-nodes-mongodb-ex
+```
+
+For Docker-based deployments, add to your n8n Docker image:
+
+```dockerfile
+RUN cd /usr/local/lib/node_modules/n8n && npm install n8n-nodes-mongodb-ex
+```
+
+## Features
+
+- MongoDB-native queries and pipelines (no SQL-like abstraction)
+- Advanced update operators: `$set`, `$unset`, `$inc`, `$push`, `$pull`, etc.
+- Update pipelines supported (array of stages)
+- Array element targeting with `arrayFilters`
+- Bulk operations: `insertMany`, `updateMany`, `bulkWrite`
+- JSON input for queries, documents, updates
+- Automatic type coercion of 24-hex ObjectId strings and ISO date strings
+- Upsert support for updates
+
+## Operations
+
+- Aggregate: Run full MongoDB aggregation pipelines
+- Find: Query documents using native MongoDB operators
+- Insert: Insert one or many documents
+- Update: Update one or many documents with operators or update pipelines
+- FindOneAndUpdate: Atomic find-and-update with full MongoDB update support
+- FindOneAndReplace: Atomic find-and-replace
+- Delete: Delete by native MongoDB filter
+
+## Type Coercion
+ObjectId and Date values are automatically handled through and through. 
+
+#### Input
+```json
+{
+  "_id": "507f1f77bcf86cd799439011",
+  "name": "John Doe",
+  "orders": [
+    {
+      "productId": "66d6215f9b3c4a18e0f7a2c1",
+      "quantity": 2,
+      "timestamp": "2025-02-03T18:46:00Z"
+    }
+  ],
+  "createdAt": "2024-01-15T10:44:00Z"
+}
+```
+
+#### Saved DB Document
+```json
+{
+  "_id": ObjectId("507f1f77bcf86cd799439011"),
+  "name": "John Doe",
+   "orders": [
+    {
+      "productId": ObjectId("66d6215f9b3c4a18e0f7a2c1"),
+      "quantity": 2,
+      "timestamp": ISODate("2025-02-03T18:46:00Z")
+    }
+  ],
+  "createdAt": ISODate("2024-01-15T10:44:00Z")
+}
+```
+
+`$oid` and `$toDate` operators in pipelines are recognized and respected. Any manual type conversions you may already have in place will not be overwritten.
+
+## Usage Examples
+
+### Advanced Update with arrayFilters
+
+```json
+{
+  "updateFilter": {"userId": "12345"},
+  "update": {
+    "$set": {
+      "orders.$[elem].status": "shipped",
+      "orders.$[elem].shippedAt": "2024-01-15T10:00:00Z"
+    }
+  },
+  "arrayFilters": [{"elem.status": "pending"}],
+  "many": false
+}
+```
+
+### Update Pipeline
+
+```json
+{
+  "updateFilter": {"_id": {"$oid": "507f1f77bcf86cd799439011"}},
+  "update": [
+    {"$set": {
+      "totalSpent": {"$add": ["$totalSpent", "$currentOrder.amount"]},
+      "lastOrderDate": "$$NOW",
+      "orderCount": {"$add": ["$orderCount", 1]}
+    }}
+  ]
+}
+```
+
+### Aggregation Pipeline
+
+```json
+[
+  {"$match": {"status": "active"}},
+  {"$lookup": {
+    "from": "orders",
+    "localField": "_id",
+    "foreignField": "userId",
+    "as": "userOrders"
+  }},
+  {"$group": {
+    "_id": "$department",
+    "totalOrders": {"$sum": {"$size": "$userOrders"}},
+    "avgOrderValue": {"$avg": "$userOrders.total"}
+  }}
+]
+```
+
+### Bulk Insert with Type Coercion
+
+```json
+{
+  "document": [
+    {
+      "_id": "507f1f77bcf86cd799439011",
+      "createdAt": "2024-01-15T10:00:00Z",
+      "name": "John Doe"
+    },
+    {
+      "_id": "507f1f77bcf86cd799439012",
+      "createdAt": "2024-01-15T11:00:00Z",
+      "name": "Jane Smith"
+    }
+  ],
+  "many": true
+}
+```
+
+## Compatibility
+
+- n8n >= 0.187.0
+- Node.js >= 20.15
+- MongoDB >= 4.4
 
 ## License
 
-[MIT](https://github.com/n8n-io/n8n-nodes-starter/blob/master/LICENSE.md)
+[MIT](./LICENSE.md)
