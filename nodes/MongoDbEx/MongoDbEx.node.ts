@@ -4,6 +4,7 @@ import type {
 	UpdateOptions,
 	Sort,
 	Document,
+	AnyBulkWriteOperation,
 } from 'mongodb';
 
 import { ApplicationError /*, NodeConnectionTypes */ } from 'n8n-workflow';
@@ -29,7 +30,9 @@ import {
 } from './GenericFunctions';
 import type { IMongoParametricCredentials } from './mongoDb.types';
 import { nodeProperties } from './MongoDbProperties';
-// import { generatePairedItemData } from '../../utils/utilities';
+import { chain } from 'lodash-es';
+
+const validBulkWriteOperations = new Set(['insertOne', 'updateOne', 'updateMany', 'deleteOne', 'deleteMany', 'replaceOne']);
 
 function generatePairedItemData(length: number): IPairedItemData[] {
 	return Array.from({ length }, (_, item) => ({
@@ -164,12 +167,12 @@ export class MongoDbEx implements INodeType {
 						const filterRaw = this.getNodeParameter('query', i) as string;
 						const filterParsed = JSON.parse(filterRaw) as unknown as Document;
 						const coercedFilter = coerceDocumentTypes(filterParsed);
-						const { deletedCount } = await mdb
+						const result = await mdb
 							.collection(this.getNodeParameter('collection', i) as string)
 							.deleteMany(coercedFilter);
 
 						returnData.push({
-							json: { deletedCount },
+							json: result as unknown as IDataObject,
 							pairedItem: fallbackPairedItems ?? [{ item: i }],
 						});
 					} catch (error) {
@@ -258,14 +261,16 @@ export class MongoDbEx implements INodeType {
 							JSON.parse(updateRaw) as unknown as Document,
 						) as unknown as IDataObject | unknown[];
 
-						await mdb
+						const returnDocument = this.getNodeParameter('options.returnDocument', i, 'after') as 'before' | 'after';
+						const result = await mdb
 							.collection(this.getNodeParameter('collection', i) as string)
-							.findOneAndReplace(filter as Document, replacement as Document, updateOptions as FindOneAndReplaceOptions);
+							.findOneAndReplace(
+								filter as Document,
+								replacement as Document,
+								({ ...(updateOptions || {}), returnDocument } as FindOneAndReplaceOptions),
+							);
 
-						const payload = Array.isArray(replacement)
-							? ({ updatePipeline: replacement } as unknown as IDataObject)
-							: ((replacement as IDataObject) || {});
-						updatesToReturn.push(payload);
+						updatesToReturn.push(result as unknown as IDataObject);
 					} catch (error) {
 						if (this.continueOnFail()) {
 							updatesToReturn.push({ error: (error as JsonObject).message });
@@ -305,18 +310,16 @@ export class MongoDbEx implements INodeType {
 							? (coerceDocumentTypes(JSON.parse(arrayFiltersRaw) as unknown as Document) as unknown as Document[])
 							: undefined;
 
-						await mdb
+						const returnDocument = this.getNodeParameter('options.returnDocument', i, 'after') as 'before' | 'after';
+						const result = await mdb
 							.collection(this.getNodeParameter('collection', i) as string)
 							.findOneAndUpdate(
 								filter as Document,
 								updateDocOrPipeline as unknown as Document,
-								({ ...(baseUpdateOptions || {}), ...(arrayFilters ? { arrayFilters } : {}) } as FindOneAndUpdateOptions),
+								({ ...(baseUpdateOptions || {}), ...(arrayFilters ? { arrayFilters } : {}), returnDocument } as FindOneAndUpdateOptions),
 							);
 
-						const payload = Array.isArray(updateDocOrPipeline)
-							? ({ updatePipeline: updateDocOrPipeline } as unknown as IDataObject)
-							: ((updateDocOrPipeline as IDataObject) || {});
-						updatesToReturn.push(payload);
+						updatesToReturn.push(result as unknown as IDataObject);
 					} catch (error) {
 						if (this.continueOnFail()) {
 							updatesToReturn.push({ error: (error as JsonObject).message });
@@ -418,24 +421,22 @@ export class MongoDbEx implements INodeType {
 							? (coerceDocumentTypes(JSON.parse(arrayFiltersRaw) as unknown as Document) as unknown as Document[])
 							: undefined;
 
+						let result;
 						if (many) {
-							await collection.updateMany(
+							result = await collection.updateMany(
 								filter as Document,
 								updateArg as unknown as Document,
 								({ ...(baseUpdateOptions || {}), ...(arrayFilters ? { arrayFilters } : {}) } as UpdateOptions),
 							);
 						} else {
-							await collection.updateOne(
+							result = await collection.updateOne(
 								filter as Document,
 								updateArg as unknown as Document,
 								({ ...(baseUpdateOptions || {}), ...(arrayFilters ? { arrayFilters } : {}) } as UpdateOptions),
 							);
 						}
 
-						const payload = Array.isArray(updateDocOrPipeline)
-							? ({ updatePipeline: updateDocOrPipeline } as unknown as IDataObject)
-							: ((updateDocOrPipeline as IDataObject) || {});
-						updatesToReturn.push(payload);
+						updatesToReturn.push(result as unknown as IDataObject);
 					} catch (error) {
 						if (this.continueOnFail()) {
 							updatesToReturn.push({ error: (error as JsonObject).message });
@@ -451,7 +452,42 @@ export class MongoDbEx implements INodeType {
 				);
 			}
 
+			if (operation === 'bulkWrite') {
+				try {
+					const combinedOps = chain(items)
+						.map((item, i) => {
+							const opsCoerced = coerceDocumentTypes(item.json) as AnyBulkWriteOperation<Document>;
+							if (
+								!chain(opsCoerced)
+									.keys()
+									.some(key => validBulkWriteOperations.has(key))
+									.value()
+							) {
+								throw new ApplicationError(`Invalid bulkWrite operation for item ${i}: ${JSON.stringify(item.json)}`, { level: 'warning' });
+							};
+
+							return opsCoerced;
+						})
+						.flatten()
+						.value();
+
+					const ordered = this.getNodeParameter('ordered', 0, false) as boolean;
+					const result = await mdb
+						.collection(this.getNodeParameter('collection', 0) as string)
+						.bulkWrite(combinedOps, { ordered });
+					returnData.push({ json: result as unknown as IDataObject, pairedItem: fallbackPairedItems ?? [{ item: 0 }] });
+				} catch (error) {
+					if (this.continueOnFail()) {
+						returnData.push({ json: { error: (error as JsonObject).message }, pairedItem: fallbackPairedItems ?? [{ item: 0 }] });
+					} else {
+						throw error;
+					}
+				}
+			}
+
+
 			if (operation === 'listSearchIndexes') {
+
 				for (let i = 0; i < itemsLength; i++) {
 					try {
 						const collection = this.getNodeParameter('collection', i) as string;

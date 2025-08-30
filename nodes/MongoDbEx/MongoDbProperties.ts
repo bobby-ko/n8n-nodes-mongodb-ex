@@ -70,6 +70,12 @@ export const nodeProperties: INodeProperties[] = [
 				value: 'update',
 				description: 'Update documents',
 				action: 'Update documents',
+			},
+			{
+				name: 'Bulk Write',
+				value: 'bulkWrite',
+				description: 'Perform a bulk write operation',
+				action: 'Bulk write',
 			}
 		],
 		default: 'find',
@@ -264,6 +270,36 @@ export const nodeProperties: INodeProperties[] = [
 	},
 
 	// ----------------------------------
+	// bulkWrite
+	// ----------------------------------
+	{
+		displayName: '⚠️ This operation expects each input to already be a shaped as a valid MongoDB bulk operation (insertOne, updateOne, updateMany, deleteOne, deleteMany, replaceOne).',
+		name: 'bulkWriteNotice',
+		type: 'notice',
+		displayOptions: {
+			show: {
+				operation: ['bulkWrite'],
+				resource: ['document'],
+			},
+		},
+		default: '',
+	},
+	{
+		displayName: 'Ordered',
+		name: 'ordered',
+		type: 'boolean',
+		displayOptions: {
+			show: {
+				operation: ['bulkWrite', 'insert'],
+				resource: ['document'],
+			},
+		},
+		default: false,
+		required: true,
+		description: 'Whether to execute the operations in order and stop on the first error',
+	},
+
+	// ----------------------------------
 	//         update
 	// ----------------------------------
 	{
@@ -339,6 +375,18 @@ export const nodeProperties: INodeProperties[] = [
 				description:
 					'MongoDB arrayFilters to control which array elements get updated using positional operators like $[elem]. Example: [{ "elem.status": "pending" }].',
 			},
+				{
+					displayName: 'Return Document',
+					name: 'returnDocument',
+					type: 'options',
+					options: [
+						{ name: 'Before', value: 'before' },
+						{ name: 'After', value: 'after' },
+					],
+					default: 'after',
+					description: 'Which version of the document to return (before or after the modification)',
+				},
+
 			{
 				displayName: 'Hint',
 				name: 'hint',
