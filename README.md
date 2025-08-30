@@ -1,8 +1,7 @@
 <!-- ![Banner image](https://user-images.githubusercontent.com/10284570/173569848-c624317f-42b1-45a6-ab09-f0ea3c247648.png) -->
 
-<img src="assets/n8n_pink+white_logo.svg" alt="n8n" width="150" /> <span style="font-size: 5.5rem; margin: 0 1rem;"> <span style="font-size: 5.5rem; margin: 0 1rem;">🤝</span> <img src="nodes/MongoDbEx/mongodb.svg" alt="n8n" height="100" />
 
-# n8n node MongoDb Ex<small style="color: gray">(tended)</small>
+# <img src="assets/n8n_pink+white_logo.svg" alt="n8n" width="50" /> 🤝 <img src="nodes/MongoDbEx/mongodb.svg" alt="n8n" height="35" /><br/>n8n node MongoDb Ex _(tended)_
 
 `n8n-nodes-mongodb-ex`
 
@@ -46,11 +45,11 @@ RUN cd /usr/local/lib/node_modules/n8n && npm install n8n-nodes-mongodb-ex
 
 ## Features
 
-- MongoDB-native queries and pipelines (no SQL-like abstraction)
+- MongoDB-native queries and pipelines
 - Advanced update operators: `$set`, `$unset`, `$inc`, `$push`, `$pull`, etc.
-- Update pipelines supported (array of stages)
-- Array element targeting with `arrayFilters`
-- Bulk operations: `insertMany`, `updateMany`, `bulkWrite`
+- [Update pipelines](https://www.mongodb.com/docs/manual/tutorial/update-documents-with-aggregation-pipeline/) supported (array of stages)
+- Array element targeting with [arrayFilters](https://www.mongodb.com/docs/manual/reference/operator/update/positional-filtered/)
+- Bulk operations: [insertMany](https://www.mongodb.com/docs/manual/reference/method/db.collection.insertMany/#mongodb-method-db.collection.insertMany), [updateMany](https://www.mongodb.com/docs/manual/reference/method/db.collection.updateMany/#mongodb-method-db.collection.updateMany), [bulkWrite](https://www.mongodb.com/docs/manual/reference/method/db.collection.bulkWrite/)
 - JSON input for queries, documents, updates
 - Automatic type coercion of 24-hex ObjectId strings and ISO date strings
 - Upsert support for updates
