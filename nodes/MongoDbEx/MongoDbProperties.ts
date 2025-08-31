@@ -36,6 +36,12 @@ export const nodeProperties: INodeProperties[] = [
 				action: 'Aggregate documents',
 			},
 			{
+				name: 'Bulk Write',
+				value: 'bulkWrite',
+				description: 'Perform a bulk write operation',
+				action: 'Bulk write',
+			},
+			{
 				name: 'Delete',
 				value: 'delete',
 				description: 'Delete documents',
@@ -70,12 +76,6 @@ export const nodeProperties: INodeProperties[] = [
 				value: 'update',
 				description: 'Update documents',
 				action: 'Update documents',
-			},
-			{
-				name: 'Bulk Write',
-				value: 'bulkWrite',
-				description: 'Perform a bulk write operation',
-				action: 'Bulk write',
 			}
 		],
 		default: 'find',
@@ -94,22 +94,22 @@ export const nodeProperties: INodeProperties[] = [
 			{
 				name: 'Create',
 				value: 'createSearchIndex',
-				action: 'Create Search Index',
+				action: 'Create search index',
 			},
 			{
 				name: 'Drop',
 				value: 'dropSearchIndex',
-				action: 'Drop Search Index',
+				action: 'Drop search index',
 			},
 			{
 				name: 'List',
 				value: 'listSearchIndexes',
-				action: 'List Search Indexes',
+				action: 'List search indexes',
 			},
 			{
 				name: 'Update',
 				value: 'updateSearchIndex',
-				action: 'Update Search Index',
+				action: 'Update search index',
 			},
 		],
 		default: 'createSearchIndex',
@@ -194,7 +194,7 @@ export const nodeProperties: INodeProperties[] = [
 				typeOptions: {
 					minValue: 1,
 				},
-				default: 0,
+				default: 50,
 				// eslint-disable-next-line n8n-nodes-base/node-param-description-wrong-for-limit
 				description:
 					'Use limit to specify the maximum number of documents or 0 for unlimited documents',
@@ -314,8 +314,7 @@ export const nodeProperties: INodeProperties[] = [
 		},
 		default: '{"_id": { "$oid": "{{$json.id}}" }}',
 		required: true,
-		description:
-			'MongoDB filter object that determines which documents should be updated. You can construct complex filters using MongoDB query operators. Example: {"_id": "{{$json.id}}"} or {"status": "active", "age": {"$gte": 18}}',
+		description: 'MongoDB filter object that determines which documents should be updated. You can construct complex filters using MongoDB query operators. Example: {"_id": "{{$JSON.ID}}"} or {"status": "active", "age": {"$gte": 18}}',
 	},
 	{
 		displayName: 'Update',
@@ -364,7 +363,7 @@ export const nodeProperties: INodeProperties[] = [
 				type: 'boolean',
 				default: false,
 				description:
-					'When enabled, perform a multi-document operation: insertMany (for Insert) or updateMany (for Update). If disabled, uses insertOne/updateOne.',
+					'Whether to perform a multi-document operation: insertMany (for Insert) or updateMany (for Update). If disabled, uses insertOne/updateOne.',
 			},
 			{
 				displayName: 'Array Filters',

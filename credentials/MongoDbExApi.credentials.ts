@@ -3,6 +3,7 @@ import type { ICredentialType, INodeProperties } from 'n8n-workflow';
 export class MongoDbExApi implements ICredentialType {
 	name = 'mongoDbExApi';
 	displayName = 'MongoDB Ex API';
+	documentationUrl = 'https://docs.n8n.io/integrations/builtin/credentials/mongodb/';
 	properties: INodeProperties[] = [
 		{
 			displayName: 'Connection String (URI)',

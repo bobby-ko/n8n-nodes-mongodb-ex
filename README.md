@@ -5,7 +5,7 @@
 
 `n8n-nodes-mongodb-ex`
 
-An extended [n8n](https://n8n.io/) MongoDB tailor-made for native MongoDB developers. This node goes beyond the built-in MongoDB node by providing authentic MongoDB query syntax, advanced update operators, update pipelines, arrayFilters, bulk operations, type coercion and more.
+An extended [n8n](https://n8n.io/) MongoDB node, tailor-made for native MongoDB developers. This node goes beyond the built-in MongoDB node by providing authentic MongoDB query syntax, advanced update operators, update pipelines, arrayFilters, bulk operations, type coercion and more.
 
 ## Table of Contents
 
@@ -84,7 +84,7 @@ ObjectId and Date values are automatically handled through and through.
 ```
 
 #### Saved DB Document
-```json
+```javascript
 {
   "_id": ObjectId("507f1f77bcf86cd799439011"),
   "name": "John Doe",
@@ -103,61 +103,96 @@ ObjectId and Date values are automatically handled through and through.
 
 ## Usage Examples
 
-### Advanced Update with arrayFilters
+### 📑 Advanced Update with arrayFilters
 
+#### Filter:
+```json
+{ "_id": 12345 }
+```
+
+#### Update:
 ```json
 {
-  "updateFilter": {"userId": "12345"},
-  "update": {
-    "$set": {
-      "orders.$[elem].status": "shipped",
-      "orders.$[elem].shippedAt": "2024-01-15T10:00:00Z"
-    }
-  },
-  "arrayFilters": [{"elem.status": "pending"}],
-  "many": false
+  "$set": {
+    "orders.$[elem].status": "shipped",
+    "orders.$[elem].shippedAt": "2024-01-15T10:00:00Z"
+  }
 }
 ```
 
-### Update Pipeline
+#### arrayFilters:
+```json
+  [{"elem.status": "pending"}]
+```
 
+---
+
+### 📜 Update Pipeline
+
+#### Filter:
 ```json
 {
-  "updateFilter": {"_id": {"$oid": "507f1f77bcf86cd799439011"}},
-  "update": [
-    {"$set": {
+  "_id": {
+    "type": "counter",
+    "metric": "orders_summary"
+  } 
+}
+```
+
+#### Update (pipeline):
+```json
+[
+  {
+    "$set": {
       "totalSpent": {"$add": ["$totalSpent", "$currentOrder.amount"]},
       "lastOrderDate": "$$NOW",
       "orderCount": {"$add": ["$orderCount", 1]}
-    }}
-  ]
-}
-```
-
-### Aggregation Pipeline
-
-```json
-[
-  {"$match": {"status": "active"}},
-  {"$lookup": {
-    "from": "orders",
-    "localField": "_id",
-    "foreignField": "userId",
-    "as": "userOrders"
-  }},
-  {"$group": {
-    "_id": "$department",
-    "totalOrders": {"$sum": {"$size": "$userOrders"}},
-    "avgOrderValue": {"$avg": "$userOrders.total"}
-  }}
+    }
+  },
+  {
+    "$push": {
+      "logs": { "message": "Stats updated", "timestamp": "$$NOW" }
+    } 
+  }
 ]
 ```
 
-### Bulk Insert with Type Coercion
+---
+
+### ⏬ Aggregation (pipeline):
 
 ```json
+[
+  {
+    "$match": {"status": "active"}
+  },
+  {
+    "$lookup": {
+      "from": "orders",
+      "localField": "_id",
+      "foreignField": "userId",
+      "as": "userOrders"
+    }
+  },
+  {
+    "$group": {
+      "_id": "$department",
+      "totalOrders": {"$sum": {"$size": "$userOrders"}},
+      "avgOrderValue": {"$avg": "$userOrders.total"}
+    }
+  }
+]
+```
+
+---
+
+### 🛒 Bulk Insert with Type Coercion
+Executes a single updateMany call for all inputs.
+
+#### Input:
+```json
 {
-  "document": [
+  [
     {
       "_id": "507f1f77bcf86cd799439011",
       "createdAt": "2024-01-15T10:00:00Z",
@@ -168,8 +203,41 @@ ObjectId and Date values are automatically handled through and through.
       "createdAt": "2024-01-15T11:00:00Z",
       "name": "Jane Smith"
     }
-  ],
-  "many": true
+  ]
+}
+```
+
+#### Many:
+Set to `true`
+
+---
+
+### 🚚 Bulk Write
+This operation expects each input to already be a shaped as a valid MongoDB bulk operation (insertOne, updateOne, updateMany, deleteOne, deleteMany, replaceOne). [See documentation](https://www.mongodb.com/docs/manual/reference/method/db.collection.bulkWrite/#mongodb-method-db.collection.bulkWrite)
+
+#### Input:
+```json
+{
+  [
+    {
+      "updateOne": {
+        "filter": { "_id": "507f1f77bcf86cd799439011" },
+        "update": { 
+          "$set": { "name.last": "Doe" },
+          "$currentDate": { "timestamp": true }
+        }
+      }
+    },
+    {
+      "updateOne": {
+        "filter": { "_id": "507f1f77bcf86cd799439013" },
+        "update": {
+          "$set": { "active": false }
+          "$currentDate": { "timestamp": true }
+        }
+      }
+    }
+  ]
 }
 ```
 
