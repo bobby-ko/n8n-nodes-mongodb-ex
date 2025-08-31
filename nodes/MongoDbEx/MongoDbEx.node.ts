@@ -46,8 +46,8 @@ export class MongoDbEx implements INodeType {
 		name: 'mongoDbEx',
 		icon: 'file:mongodb.svg',
 		group: ['input'],
-		version: [1, 1.1, 1.2],
-		description: 'MongoDB Extended - Advanced MongoDB operations, including support for filters, bulk operations, full update json support and more.',
+		version: [1, 2, 3],
+		description: 'MongoDB Extended - Advanced MongoDB operations, including support for filters, bulk operations, full update JSON support and more.',
 		defaults: {
 			name: 'MongoDB Ex',
 		},
@@ -127,7 +127,7 @@ export class MongoDbEx implements INodeType {
 			let itemsLength = items.length ? 1 : 0;
 			let fallbackPairedItems: IPairedItemData[] | null = null;
 
-			if (nodeVersion >= 1.1) {
+			if (nodeVersion >= 2) {
 				itemsLength = items.length;
 			} else {
 				fallbackPairedItems = generatePairedItemData(items.length);
