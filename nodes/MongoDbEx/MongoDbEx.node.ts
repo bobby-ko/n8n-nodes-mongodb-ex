@@ -40,13 +40,27 @@ function generatePairedItemData(length: number): IPairedItemData[] {
 	}));
 }
 
+function getCommonOptions(opts: IDataObject): Record<string, unknown> {
+	// common options
+	// const opts = (this.getNodeParameter('options', i, {}) as IDataObject) || {};
+	const commonOptions: Record<string, unknown> = {};
+	if (typeof opts.maxTimeMS === 'number' && opts.maxTimeMS > 0)
+		commonOptions.maxTimeMS = opts.maxTimeMS;
+	if (opts.hint && (opts.hint as string).trim() !== '')
+		commonOptions.hint = opts.hint as unknown;
+	if (typeof opts.timeoutMS === 'number' && opts.timeoutMS > 0)
+		commonOptions.timeoutMS = opts.timeoutMS;
+	
+	return commonOptions;
+}
+
 export class MongoDbEx implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'MongoDB Ex',
 		name: 'mongoDbEx',
 		icon: 'file:mongodb.svg',
 		group: ['input'],
-		version: [1, 2, 3],
+		version: 1,
 		description: 'MongoDB Extended - Advanced MongoDB operations, including support for filters, bulk operations, full update JSON support and more.',
 		defaults: {
 			name: 'MongoDB Ex',
@@ -136,16 +150,26 @@ export class MongoDbEx implements INodeType {
 			if (operation === 'aggregate') {
 				for (let i = 0; i < itemsLength; i++) {
 					try {
-						const pipelineRaw = this.getNodeParameter('query', i) as string;
-						const pipelineParsed = JSON.parse(pipelineRaw) as unknown;
-						const coercedPipeline = coerceDocumentTypes(
-							pipelineParsed as unknown as Document,
-						) as unknown as Document[];
-						const query = mdb
-							.collection(this.getNodeParameter('collection', i) as string)
-							.aggregate(coercedPipeline);
+						const pipelineRaw = this.getNodeParameter('query', i);
 
-						for (const entry of await query.toArray()) {
+						if (typeof pipelineRaw !== 'string' && (pipelineRaw === null || !Array.isArray(pipelineRaw))) {
+							throw new ApplicationError('Invalid pipeline format', { level: 'warning' });
+						}
+
+						const pipelineParsed: Document[] =
+							typeof pipelineRaw === 'string'
+								? JSON.parse(pipelineRaw)
+								: (pipelineRaw as Document[]);
+
+						const coercedPipeline = coerceDocumentTypes(pipelineParsed);
+
+						const commonOptions = getCommonOptions(this.getNodeParameter('options', i, {}) as IDataObject);
+
+						const cursor = mdb
+							.collection(this.getNodeParameter('collection', i) as string)
+							.aggregate(coercedPipeline, commonOptions);
+
+						for (const entry of await cursor.toArray()) {
 							returnData.push({ json: entry, pairedItem: fallbackPairedItems ?? [{ item: i }] });
 						}
 					} catch (error) {
@@ -167,9 +191,10 @@ export class MongoDbEx implements INodeType {
 						const filterRaw = this.getNodeParameter('query', i) as string;
 						const filterParsed = JSON.parse(filterRaw) as unknown as Document;
 						const coercedFilter = coerceDocumentTypes(filterParsed);
+						const commonOptions = getCommonOptions(this.getNodeParameter('options', i, {}) as IDataObject);
 						const result = await mdb
 							.collection(this.getNodeParameter('collection', i) as string)
-							.deleteMany(coercedFilter);
+							.deleteMany(coercedFilter, commonOptions);
 
 						returnData.push({
 							json: result as unknown as IDataObject,
@@ -191,13 +216,20 @@ export class MongoDbEx implements INodeType {
 			if (operation === 'find') {
 				for (let i = 0; i < itemsLength; i++) {
 					try {
-						const queryRaw = this.getNodeParameter('query', i) as string;
-						const queryParsed = JSON.parse(queryRaw) as unknown as Document;
+						const queryRaw = this.getNodeParameter('query', i);
+						if (typeof queryRaw !== 'string' && (queryRaw === null || typeof queryRaw !== 'object')) {
+							throw new ApplicationError('Invalid find query format', { level: 'warning' });
+						}
+						const queryParsed: Document = typeof queryRaw === 'string'
+							? (JSON.parse(queryRaw) as Document)
+							: (queryRaw as Document);
 						const coercedQuery = coerceDocumentTypes(queryParsed);
+
+						const commonOptions = getCommonOptions(this.getNodeParameter('options', i, {}) as IDataObject);
 
 						let query = mdb
 							.collection(this.getNodeParameter('collection', i) as string)
-							.find(coercedQuery);
+							.find(coercedQuery, commonOptions);
 
 						const options = this.getNodeParameter('options', i);
 						const limit = options.limit as number;
@@ -261,13 +293,18 @@ export class MongoDbEx implements INodeType {
 							JSON.parse(updateRaw) as unknown as Document,
 						) as unknown as IDataObject | unknown[];
 
+						const commonOptions = getCommonOptions(this.getNodeParameter('options', i, {}) as IDataObject);
+
 						const returnDocument = this.getNodeParameter('options.returnDocument', i, 'after') as 'before' | 'after';
 						const result = await mdb
 							.collection(this.getNodeParameter('collection', i) as string)
 							.findOneAndReplace(
 								filter as Document,
 								replacement as Document,
-								({ ...(updateOptions || {}), returnDocument } as FindOneAndReplaceOptions),
+								{
+									...commonOptions,
+									...(updateOptions || {}), returnDocument
+								} as FindOneAndReplaceOptions
 							);
 
 						updatesToReturn.push(result as unknown as IDataObject);
@@ -310,13 +347,17 @@ export class MongoDbEx implements INodeType {
 							? (coerceDocumentTypes(JSON.parse(arrayFiltersRaw) as unknown as Document) as unknown as Document[])
 							: undefined;
 
+						const commonOptions = getCommonOptions(this.getNodeParameter('options', i, {}) as IDataObject);
 						const returnDocument = this.getNodeParameter('options.returnDocument', i, 'after') as 'before' | 'after';
 						const result = await mdb
 							.collection(this.getNodeParameter('collection', i) as string)
 							.findOneAndUpdate(
 								filter as Document,
 								updateDocOrPipeline as unknown as Document,
-								({ ...(baseUpdateOptions || {}), ...(arrayFilters ? { arrayFilters } : {}), returnDocument } as FindOneAndUpdateOptions),
+								{
+									...commonOptions,
+									...(baseUpdateOptions || {}), ...(arrayFilters ? { arrayFilters } : {}), returnDocument
+								} as FindOneAndUpdateOptions,
 							);
 
 						updatesToReturn.push(result as unknown as IDataObject);
@@ -358,7 +399,8 @@ export class MongoDbEx implements INodeType {
 					);
 
 					if (many) {
-						const { insertedIds } = await collection.insertMany(coercedItems as unknown as Document[]);
+						const commonOptions = getCommonOptions(this.getNodeParameter('options', 0, {}) as IDataObject);
+						const { insertedIds } = await collection.insertMany(coercedItems as unknown as Document[], commonOptions);
 						for (const i of Object.keys(insertedIds)) {
 							responseData.push({
 								...coercedItems[parseInt(i, 10)],
@@ -366,8 +408,10 @@ export class MongoDbEx implements INodeType {
 							});
 						}
 					} else {
+						let i = 0;
 						for (const item of coercedItems) {
-							const { insertedId } = await collection.insertOne(item as unknown as Document);
+							const commonOptions = getCommonOptions(this.getNodeParameter('options', i++, {}) as IDataObject);
+							const { insertedId } = await collection.insertOne(item as unknown as Document, commonOptions);
 							responseData.push({ ...item, id: insertedId as unknown as string });
 						}
 					}
@@ -421,18 +465,26 @@ export class MongoDbEx implements INodeType {
 							? (coerceDocumentTypes(JSON.parse(arrayFiltersRaw) as unknown as Document) as unknown as Document[])
 							: undefined;
 
+						const commonOptions = getCommonOptions(this.getNodeParameter('options', i, {}) as IDataObject);
+
 						let result;
 						if (many) {
 							result = await collection.updateMany(
 								filter as Document,
 								updateArg as unknown as Document,
-								({ ...(baseUpdateOptions || {}), ...(arrayFilters ? { arrayFilters } : {}) } as UpdateOptions),
+								{
+									...commonOptions,
+									...(baseUpdateOptions || {}), ...(arrayFilters ? { arrayFilters } : {})
+								} as UpdateOptions,
 							);
 						} else {
 							result = await collection.updateOne(
 								filter as Document,
 								updateArg as unknown as Document,
-								({ ...(baseUpdateOptions || {}), ...(arrayFilters ? { arrayFilters } : {}) } as UpdateOptions),
+								{
+									...commonOptions,
+									...(baseUpdateOptions || {}), ...(arrayFilters ? { arrayFilters } : {})
+								} as UpdateOptions,
 							);
 						}
 
@@ -471,10 +523,16 @@ export class MongoDbEx implements INodeType {
 						.flatten()
 						.value();
 
+					const commonOptions = getCommonOptions(this.getNodeParameter('options', 0, {}) as IDataObject);
 					const ordered = this.getNodeParameter('ordered', 0, false) as boolean;
 					const result = await mdb
 						.collection(this.getNodeParameter('collection', 0) as string)
-						.bulkWrite(combinedOps, { ordered });
+						.bulkWrite(
+							combinedOps,
+							{
+								...commonOptions,
+								ordered
+							});
 					returnData.push({ json: result as unknown as IDataObject, pairedItem: fallbackPairedItems ?? [{ item: 0 }] });
 				} catch (error) {
 					if (this.continueOnFail()) {

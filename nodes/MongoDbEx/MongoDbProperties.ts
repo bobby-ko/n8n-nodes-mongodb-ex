@@ -132,12 +132,13 @@ export const nodeProperties: INodeProperties[] = [
 		type: 'json',
 		typeOptions: {
 			alwaysOpenEditWindow: true,
+			rows: 10
 		},
 		displayOptions: {
 			show: {
 				operation: ['aggregate'],
 				resource: ['document'],
-			},
+			}
 		},
 		default: '',
 		placeholder: '[{ "$match": { "$gt": "1950-01-01" }, ... }]',
@@ -273,7 +274,7 @@ export const nodeProperties: INodeProperties[] = [
 	// bulkWrite
 	// ----------------------------------
 	{
-		displayName: '⚠️ This operation expects each input to already be a shaped as a valid MongoDB bulk operation (insertOne, updateOne, updateMany, deleteOne, deleteMany, replaceOne).',
+		displayName: '⚠️ This operation expects each input to already be a valid MongoDB bulk operation shape (insertOne, updateOne, updateMany, deleteOne, deleteMany, replaceOne).',
 		name: 'bulkWriteNotice',
 		type: 'notice',
 		displayOptions: {
@@ -306,20 +307,26 @@ export const nodeProperties: INodeProperties[] = [
 		displayName: 'Update Filter',
 		name: 'updateFilter',
 		type: 'json',
+		typeOptions: {
+			rows: 5,
+		},
 		displayOptions: {
 			show: {
 				operation: ['update', 'findOneAndReplace', 'findOneAndUpdate'],
 				resource: ['document'],
 			},
 		},
-		default: '{"_id": { "$oid": "{{$json.id}}" }}',
+		default: '{"_id": "{{$json.id}}" }',
 		required: true,
-		description: 'MongoDB filter object that determines which documents should be updated. You can construct complex filters using MongoDB query operators. Example: {"_id": "{{$JSON.ID}}"} or {"status": "active", "age": {"$gte": 18}}',
+		description: 'MongoDB filter object that determines which documents should be updated. You can construct complex filters using MongoDB query operators. Example: {"_id": "507f1f77bcf86cd799439011"} or {"status": "active", "age": {"$gte": 18}}',
 	},
 	{
 		displayName: 'Update',
 		name: 'update',
 		type: 'json',
+		typeOptions: {
+			rows: 10,
+		},
 		displayOptions: {
 			show: {
 				operation: ['update', 'findOneAndUpdate'],
@@ -350,9 +357,121 @@ export const nodeProperties: INodeProperties[] = [
 		type: 'collection',
 		displayOptions: {
 			show: {
+				operation: ['findOneAndReplace', 'findOneAndUpdate'],
+				resource: ['document'],
+			}
+		},
+		placeholder: 'Add option',
+		default: {},
+		options: [
+			{
+				displayName: 'Return Document',
+				name: 'returnDocument',
+				type: 'options',
+				options: [
+					{ name: 'Before', value: 'before' },
+					{ name: 'After', value: 'after' },
+				],
+				default: 'after',
+				description: 'Which version of the document to return (before or after the modification)',
+			}
+		],
+	},
+	{
+		displayName: 'Options',
+		name: 'options',
+		type: 'collection',
+		displayOptions: {
+			show: {
+				operation: ['aggregate', 'update', 'insert', 'findOneAndReplace', 'findOneAndUpdate', 'delete'],
+				resource: ['document'],
+			},
+		},
+		placeholder: 'Add option',
+		default: {},
+		options: [
+			{
+				displayName: 'Timeout',
+				name: 'timeoutMS',
+				type: 'number',
+				default: 30000,
+				description: 'Maximum time in milliseconds to wait for a response',
+			},
+			{
+				displayName: 'Max Time',
+				name: 'maxTimeMS',
+				type: 'number',
+				default: 30000,
+				description: 'Maximum time in milliseconds to wait for the operation to complete',
+			},
+			{
+				displayName: 'Hint',
+				name: 'hint',
+				type: 'string',
+				default: '',
+				description: 'Index name to use for query optimization',
+			}
+		],
+	},
+	{
+		displayName: 'Options',
+		name: 'options',
+		type: 'collection',
+		displayOptions: {
+			show: {
 				operation: ['update', 'insert', 'findOneAndReplace', 'findOneAndUpdate'],
 				resource: ['document'],
 			},
+		},
+		placeholder: 'Add option',
+		default: {},
+		options: [
+			{
+				displayName: 'Array Filters',
+				name: 'arrayFilters',
+				type: 'json',
+				default: '',
+				placeholder: '[{ "elem.status": "pending" }]',
+				description:
+					'MongoDB arrayFilters to control which array elements get updated using positional operators like $[elem]. Example: [{ "elem.status": "pending" }].',
+			}
+		],
+	},
+	{
+		displayName: 'Options',
+		name: 'options',
+		type: 'collection',
+		displayOptions: {
+			show: {
+				operation: ['findOneAndReplace', 'findOneAndUpdate'],
+				resource: ['document'],
+			}
+		},
+		placeholder: 'Add option',
+		default: {},
+		options: [
+			{
+				displayName: 'Return Document',
+				name: 'returnDocument',
+				type: 'options',
+				options: [
+					{ name: 'Before', value: 'before' },
+					{ name: 'After', value: 'after' },
+				],
+				default: 'after',
+				description: 'Which version of the document to return (before or after the modification)',
+			}
+		],
+	},
+	{
+		displayName: 'Options',
+		name: 'options',
+		type: 'collection',
+		displayOptions: {
+			show: {
+				operation: ['update', 'insert'],
+				resource: ['document'],
+			}
 		},
 		placeholder: 'Add option',
 		default: {},
@@ -364,34 +483,6 @@ export const nodeProperties: INodeProperties[] = [
 				default: false,
 				description:
 					'Whether to perform a multi-document operation: insertMany (for Insert) or updateMany (for Update). If disabled, uses insertOne/updateOne.',
-			},
-			{
-				displayName: 'Array Filters',
-				name: 'arrayFilters',
-				type: 'json',
-				default: '',
-				placeholder: '[{ "elem.status": "pending" }]',
-				description:
-					'MongoDB arrayFilters to control which array elements get updated using positional operators like $[elem]. Example: [{ "elem.status": "pending" }].',
-			},
-				{
-					displayName: 'Return Document',
-					name: 'returnDocument',
-					type: 'options',
-					options: [
-						{ name: 'Before', value: 'before' },
-						{ name: 'After', value: 'after' },
-					],
-					default: 'after',
-					description: 'Which version of the document to return (before or after the modification)',
-				},
-
-			{
-				displayName: 'Hint',
-				name: 'hint',
-				type: 'string',
-				default: '',
-				description: 'Index name to use for query optimization',
 			}
 		],
 	},

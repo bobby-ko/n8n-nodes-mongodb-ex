@@ -1,6 +1,3 @@
-<!-- ![Banner image](https://user-images.githubusercontent.com/10284570/173569848-c624317f-42b1-45a6-ab09-f0ea3c247648.png) -->
-
-
 # <img src="assets/n8n_pink+white_logo.svg" alt="n8n" width="50" /> 🤝 <img src="nodes/MongoDbEx/mongodb.svg" alt="n8n" height="35" /><br/>n8n node MongoDb Ex _(tended)_
 
 `n8n-nodes-mongodb-ex`
@@ -26,6 +23,7 @@ MongoDB Extended (MongoDbEx) is a drop-in replacement for n8n’s base MongoDB n
 - Target array elements precisely with arrayFilters and positional operators
 - Perform single or bulk operations (insertMany/updateMany/bulkWrite)
 - Automatic type coercion for ObjectId and ISO dates
+- Subnode support - use it as a tool for AI Agents
 
 ## Installation
 
@@ -213,7 +211,7 @@ Set to `true`
 ---
 
 ### 🚚 Bulk Write
-This operation expects each input to already be a shaped as a valid MongoDB bulk operation (insertOne, updateOne, updateMany, deleteOne, deleteMany, replaceOne). [See documentation](https://www.mongodb.com/docs/manual/reference/method/db.collection.bulkWrite/#mongodb-method-db.collection.bulkWrite)
+This operation expects each input to already of valid MongoDB bulk operation shape (insertOne, updateOne, updateMany, deleteOne, deleteMany, replaceOne). [See documentation](https://www.mongodb.com/docs/manual/reference/method/db.collection.bulkWrite/#mongodb-method-db.collection.bulkWrite)
 
 #### Input:
 ```json
