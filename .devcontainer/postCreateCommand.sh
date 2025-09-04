@@ -41,6 +41,6 @@ git config --global user.email "$email"
 
 # END Git credential configuration
 
-npm install n8n -g
+npm install n8n -g \
 && npm install \
 && echo -e "\n------------------------\n✓ Dev Container ready!!!\n------------------------"

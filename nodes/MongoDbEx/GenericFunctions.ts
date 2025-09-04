@@ -218,9 +218,9 @@ function isISODateString(value: string): boolean {
 	return isoRegex.test(value);
 }
 
-function traverseAndCoerce(value: unknown): unknown {
+function traverseAndCoerce(value: any): any {
 	if (Array.isArray(value)) {
-		return value.map((v) => traverseAndCoerce(v));
+		return value.map(v => traverseAndCoerce(v));
 	}
 	if (value !== null && typeof value === 'object') {
 		const obj = value as Record<string, unknown>;
@@ -249,6 +249,6 @@ function traverseAndCoerce(value: unknown): unknown {
 	return value;
 }
 
-export function coerceDocumentTypes(document: Document): Document {
-	return traverseAndCoerce(document) as Document;
+export function coerceDocumentTypes<T extends Document | Document[]>(document: T): T {
+	return traverseAndCoerce(document);
 }
