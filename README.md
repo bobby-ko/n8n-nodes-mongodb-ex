@@ -23,6 +23,7 @@ MongoDB Extended (MongoDbEx) is a drop-in replacement for n8n’s base MongoDB n
 - Target array elements precisely with arrayFilters and positional operators
 - Perform single or bulk operations (insertMany/updateMany/bulkWrite)
 - Automatic type coercion for ObjectId and ISO dates
+- Subnode support - use it as a tool for AI Agents
 
 ## Installation
 
